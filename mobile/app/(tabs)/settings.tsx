@@ -98,7 +98,7 @@ export default function SettingsScreen(): JSX.Element {
             description="Auto-approve everything instantly. Use when working locally with full trust."
             value={skipMode}
             onValueChange={handleSkipToggle}
-            disabled={isToggling || !isConnected}
+            disabled={isToggling}
           />
         )}
       </Card>
