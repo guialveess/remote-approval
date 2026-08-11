@@ -159,14 +159,6 @@ async function requestApproval(details) {
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length === 0) {
-    process.stderr.write(
-      `Usage: copilot <command> [options]\n` +
-        `       (passes all arguments through to \`${COPILOT_BIN}\`)\n`
-    );
-    process.exit(1);
-  }
-
   // ── Spawn copilot inside a PTY ─────────────────────────────────────────────
 
   const cols = process.stdout.columns || 120;
