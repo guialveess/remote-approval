@@ -209,20 +209,48 @@ Then `source ~/.zshrc` and restart Claude Code. Every tool call (Edit, Write, Ba
 
 ---
 
-### 5. Copilot CLI adapter (work PC)
+### 5. Copilot CLI adapter (work PC — Linux / WSL / Mac)
 
-Requires Node.js. No Claude Code needed.
+> **Important:** on the work PC you only need the adapter. Do NOT set up the server or the mobile app locally — the server is already running in the cloud and the mobile app is on your phone. Only follow the steps below.
+
+**Requirements:** Node.js >= 18 and `gh` CLI with the Copilot extension (`gh extension install github/gh-copilot`).
 
 ```bash
-cd adapters/copilot-cli
+# 1. Clone only what you need
+git clone https://github.com/guialveess/remote-approval.git
+cd remote-approval/adapters/copilot-cli
+
+# 2. Install node-pty (native module — needs make/g++ on Linux)
+#    If build tools are missing on Ubuntu/Debian:
+#    sudo apt-get install -y build-essential python3
 npm install
-chmod +x install.sh
-./install.sh
+
+# 3. Add env vars and aliases to your shell profile
+#    On Linux/WSL use ~/.bashrc; on Mac use ~/.zshrc
+cat >> ~/.bashrc << 'EOF'
+
+# ── Remote Approval ──────────────────────────────────────────────
+export REMOTE_APPROVAL_URL=https://remote-approval.onrender.com
+export REMOTE_APPROVAL_SECRET=<your-ADAPTER_SECRET-from-the-server>
+alias copilot="node $HOME/remote-approval/adapters/copilot-cli/wrapper.js"
+alias ghc="node $HOME/remote-approval/adapters/copilot-cli/wrapper.js"
+# ─────────────────────────────────────────────────────────────────
+EOF
+
+source ~/.bashrc
 ```
 
-Set env vars in `~/.zshrc` (same as above) and source it.
+Replace `<your-ADAPTER_SECRET-from-the-server>` with the value of `ADAPTER_SECRET` set in your cloud dashboard (Render / Fly.io).
 
-Use `copilot suggest` or `copilot explain` instead of `gh copilot` — the wrapper spawns Copilot inside a PTY, intercepts confirmation prompts, and blocks until you approve from the app.
+**Usage** — use `copilot` or `ghc` instead of `gh copilot`:
+```bash
+copilot suggest -t shell "list docker containers sorted by size"
+copilot explain "git rebase -i HEAD~3"
+```
+
+When Copilot suggests a command and asks for confirmation, the wrapper intercepts the prompt, sends it to the relay server, and waits. The card appears on your phone — approve or deny from the app. If the server is unreachable the command passes through automatically (fail open).
+
+> **Note for WSL:** `node-pty` requires native build tools. If `npm install` fails with a `node-gyp` error, run `sudo apt-get install -y build-essential python3` and retry.
 
 ---
 
