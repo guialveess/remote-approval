@@ -27,7 +27,9 @@ const os = require("os");
 const SERVER_URL = (process.env.REMOTE_APPROVAL_URL || "").replace(/\/$/, "");
 const SECRET = process.env.REMOTE_APPROVAL_SECRET || "";
 const COPILOT_BIN = process.env.COPILOT_BIN || "copilot";
+const SESSION = process.env.REMOTE_APPROVAL_SESSION || os.hostname();
 const POLL_TIMEOUT_SECONDS = 300;
+const HEARTBEAT_INTERVAL_MS = 30_000;
 
 /**
  * Patterns that indicate Copilot CLI is asking for execution confirmation.
@@ -105,10 +107,11 @@ async function requestApproval(details) {
   }
 
   const payload = {
-    tool: "gh-copilot-cli",
+    tool: "copilot-cli",
     action: "Execute suggested command",
     details,
     source: "copilot-cli",
+    session: SESSION,
   };
 
   let approvalId;
@@ -156,8 +159,19 @@ async function requestApproval(details) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+function sendHeartbeat() {
+  if (!SERVER_URL || !SECRET) return;
+  request("POST", `${SERVER_URL}/sessions/heartbeat`, {}, { session: SESSION, source: "copilot-cli" })
+    .catch(() => {}); // fire-and-forget; never block on heartbeat failure
+}
+
 async function main() {
   const args = process.argv.slice(2);
+
+  // Send initial heartbeat + keep session alive while the wrapper runs
+  sendHeartbeat();
+  const hbTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+  if (hbTimer.unref) hbTimer.unref();
 
   // ── Spawn copilot inside a PTY ─────────────────────────────────────────────
 

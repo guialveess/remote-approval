@@ -103,6 +103,10 @@ export function ApprovalCard({ approval, animate = true }: ApprovalCardProps) {
 
         <Text style={styles.action} numberOfLines={1}>{approval.action}</Text>
 
+        {approval.session && (
+          <Text style={styles.session}>⌗ {approval.session}</Text>
+        )}
+
         <Text style={styles.details} numberOfLines={2}>
           {approval.details}
         </Text>
@@ -164,7 +168,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.foreground,
+    marginBottom: 4,
+  },
+  session: {
+    fontSize: 11,
+    color: COLORS.mutedFg,
     marginBottom: 5,
+    letterSpacing: 0.2,
   },
   details: {
     fontSize: 12,

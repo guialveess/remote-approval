@@ -15,11 +15,13 @@
 const https = require("https");
 const http = require("http");
 const url = require("url");
+const os = require("os");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SERVER_URL = (process.env.REMOTE_APPROVAL_URL || "").replace(/\/$/, "");
 const SECRET = process.env.REMOTE_APPROVAL_SECRET || "";
+const SESSION = process.env.REMOTE_APPROVAL_SESSION || os.hostname();
 const POLL_TIMEOUT_SECONDS = 300;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -272,6 +274,7 @@ function buildPayload(toolName, toolInput) {
     action,
     details,
     source: "claude-code",
+    session: SESSION,
   };
 
   if (diff !== undefined) payload.diff = diff;

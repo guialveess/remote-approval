@@ -13,9 +13,10 @@ const MAX_WAIT_TIMEOUT = 600;     // seconds — cap to avoid runaway connection
  *
  * @param {import('../store').ApprovalStore} store
  * @param {{ broadcast: (event: string, data: object) => void }} wsManager
+ * @param {import('../sessions').SessionStore} sessionStore
  * @returns {import('express').Router}
  */
-function buildApprovalsRouter(store, wsManager) {
+function buildApprovalsRouter(store, wsManager, sessionStore) {
   const router = Router();
   const adapterAuth = createAuthMiddleware('ADAPTER_SECRET');
 
@@ -45,7 +46,7 @@ function buildApprovalsRouter(store, wsManager) {
   // POST /approvals — create a new approval request (adapter clients)
   // -------------------------------------------------------------------------
   router.post('/', adapterAuth, async (req, res) => {
-    const { tool, action, details, diff, source } = req.body;
+    const { tool, action, details, diff, source, session } = req.body;
 
     // Validate required fields
     const missing = [];
@@ -68,15 +69,25 @@ function buildApprovalsRouter(store, wsManager) {
       return res.status(400).json({ error: 'Field "diff" must be a string if provided' });
     }
 
+    // Register / refresh the session that's making this request
+    let sessionSkip = false;
+    if (session && typeof session === 'string' && sessionStore) {
+      const { session: s, isNew } = sessionStore.touch(session, source);
+      sessionSkip = s.skipMode;
+      wsManager.broadcast('session:updated', s);
+      if (isNew) console.log(`[sessions] New session: ${session}`);
+    }
+
     // Create the approval record
-    const approval = store.create({ tool, action, details, diff, source });
+    const approval = store.create({ tool, action, details, diff, source, session: session || null });
 
-    console.log(`[approvals] Created ${approval.id} from ${source} — ${action}`);
+    console.log(`[approvals] Created ${approval.id} from ${source}${session ? ` (${session})` : ''} — ${action}`);
 
-    // Skip mode: auto-approve immediately without notifying
-    if (skipMode) {
-      const resolved = store.resolve(approval.id, 'approved');
-      console.log(`[approvals] Auto-approved ${approval.id} (skip mode)`);
+    // Skip mode: global OR per-session — auto-approve immediately
+    if (skipMode || sessionSkip) {
+      store.resolve(approval.id, 'approved');
+      const reason = skipMode ? 'global skip' : `session skip (${session})`;
+      console.log(`[approvals] Auto-approved ${approval.id} (${reason})`);
       return res.status(201).json({
         id: approval.id,
         status: 'approved',

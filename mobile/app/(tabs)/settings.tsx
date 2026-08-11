@@ -94,8 +94,8 @@ export default function SettingsScreen(): JSX.Element {
           </View>
         ) : (
           <ToggleRow
-            label="Skip approvals"
-            description="Auto-approve everything instantly. Use when working locally with full trust."
+            label="Skip all approvals"
+            description="Master switch — auto-approves every action from every session. Use the Sessions tab to skip per machine."
             value={skipMode}
             onValueChange={handleSkipToggle}
             disabled={isToggling}

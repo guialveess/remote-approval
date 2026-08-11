@@ -13,6 +13,7 @@ const AUTO_EXPIRE_MS = 10 * 60 * 1000; // 10 minutes
  * @property {string} details
  * @property {string|undefined} diff
  * @property {'claude-code'|'copilot-cli'} source
+ * @property {string|undefined} session  Session/machine identifier
  * @property {'pending'|'approved'|'denied'|'expired'} status
  * @property {string} createdAt   ISO timestamp
  * @property {string|null} resolvedAt  ISO timestamp or null
@@ -40,7 +41,7 @@ class ApprovalStore {
    * @param {{ tool: string, action: string, details: string, diff?: string, source: string }} fields
    * @returns {Approval}
    */
-  create({ tool, action, details, diff, source }) {
+  create({ tool, action, details, diff, source, session }) {
     const id = uuidv4();
     const now = new Date().toISOString();
 
@@ -52,6 +53,7 @@ class ApprovalStore {
       details,
       diff: diff || null,
       source,
+      session: session || null,
       status: 'pending',
       createdAt: now,
       resolvedAt: null,

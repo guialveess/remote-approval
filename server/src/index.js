@@ -5,9 +5,11 @@ require('dotenv').config();
 const http = require('http');
 const express = require('express');
 const { ApprovalStore } = require('./store');
+const { SessionStore } = require('./sessions');
 const { createWebSocketServer } = require('./ws');
 const { buildApprovalsRouter } = require('./routes/approvals');
 const { buildCallbacksRouter } = require('./routes/callbacks');
+const { buildSessionsRouter } = require('./routes/sessions');
 
 // ---------------------------------------------------------------------------
 // Environment validation
@@ -63,8 +65,9 @@ async function main() {
   const PORT = parseInt(process.env.PORT, 10) || 3000;
   const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
-  // Shared approval store
+  // Shared stores
   const store = new ApprovalStore();
+  const sessionStore = new SessionStore();
 
   // Express app
   const app = createApp();
@@ -75,9 +78,20 @@ async function main() {
   // WebSocket server (attached to the same HTTP server at /ws)
   const wsManager = createWebSocketServer(httpServer);
 
+  // Check for sessions that went offline every 30 s
+  const offlineTimer = setInterval(() => {
+    const wentOffline = sessionStore.checkOffline();
+    for (const s of wentOffline) {
+      console.log(`[sessions] Session offline: ${s.id}`);
+      wsManager.broadcast('session:updated', s);
+    }
+  }, 30_000);
+  if (offlineTimer.unref) offlineTimer.unref();
+
   // Mount routes
-  app.use('/approvals', buildApprovalsRouter(store, wsManager));
+  app.use('/approvals', buildApprovalsRouter(store, wsManager, sessionStore));
   app.use('/callbacks', buildCallbacksRouter(store, wsManager));
+  app.use('/sessions', buildSessionsRouter(sessionStore, wsManager));
 
   // Health check — no auth required
   app.get('/health', (_req, res) => {
