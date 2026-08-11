@@ -69,10 +69,13 @@ if [[ ! -f "${WRAPPER_PATH}" ]]; then
   exit 1
 fi
 
-if ! command -v gh &>/dev/null; then
-  warn "The 'gh' CLI is not installed. The wrapper calls 'gh copilot'."
-  warn "Install it from https://cli.github.com and ensure 'gh copilot' extension is active."
-  # Not a fatal error — user might install gh later.
+COPILOT_REAL=$(command -v copilot 2>/dev/null || true)
+if [[ -z "${COPILOT_REAL}" ]]; then
+  warn "'copilot' binary not found in PATH. Install it and re-run."
+  warn "The wrapper needs the real copilot binary to be available."
+  # Not a fatal error — user might add it to PATH later.
+else
+  success "Found copilot at ${COPILOT_REAL}"
 fi
 
 # ─── Step 1: npm install ──────────────────────────────────────────────────────
@@ -89,9 +92,11 @@ ALIAS_BLOCK="
 export REMOTE_APPROVAL_URL=\"https://YOUR_RELAY_SERVER_URL\"
 export REMOTE_APPROVAL_SECRET=\"YOUR_SECRET_TOKEN\"
 
-# 'copilot' and 'ghc' both route through the approval wrapper.
+# Full path to the real copilot binary — avoids alias recursion.
+export COPILOT_BIN=\"${COPILOT_REAL:-copilot}\"
+
+# Override the 'copilot' command so every invocation goes through the gate.
 alias copilot='node ${WRAPPER_PATH}'
-alias ghc='node ${WRAPPER_PATH}'
 # ─────────────────────────────────────────────────────────────────────────────
 "
 
@@ -137,7 +142,7 @@ echo ""
 echo "  2. Reload your shell:"
 echo "       source ~/.zshrc"
 echo ""
-echo "  3. Use 'copilot' (or 'ghc') instead of 'gh copilot':"
+echo "  3. Use 'copilot' normally — the wrapper is transparent:"
 echo "       copilot suggest -t shell 'list all docker containers'"
 echo "       copilot explain 'git rebase -i HEAD~3'"
 echo ""

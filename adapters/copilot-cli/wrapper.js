@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 /**
- * Copilot CLI wrapper — remote approval gate for `gh copilot suggest/explain`.
+ * Copilot CLI wrapper — remote approval gate for the standalone `copilot` CLI.
  *
- * Spawns `gh copilot` inside a PTY so Copilot behaves as if it's running in a
+ * Spawns the copilot binary inside a PTY so it behaves as if it's running in a
  * real terminal, intercepts confirmation prompts, and gates execution behind a
  * remote approval call before passing a keystroke back to the PTY.
  *
  * Config (env vars):
  *   REMOTE_APPROVAL_URL     Base URL of the relay server
  *   REMOTE_APPROVAL_SECRET  Bearer token
+ *   COPILOT_BIN             Path to the real copilot binary (default: "copilot")
+ *                           Set this to avoid alias recursion when the `copilot`
+ *                           shell alias points to this wrapper.
  */
 
 "use strict";
@@ -23,6 +26,7 @@ const os = require("os");
 
 const SERVER_URL = (process.env.REMOTE_APPROVAL_URL || "").replace(/\/$/, "");
 const SECRET = process.env.REMOTE_APPROVAL_SECRET || "";
+const COPILOT_BIN = process.env.COPILOT_BIN || "copilot";
 const POLL_TIMEOUT_SECONDS = 300;
 
 /**
@@ -157,18 +161,18 @@ async function main() {
 
   if (args.length === 0) {
     process.stderr.write(
-      "Usage: copilot <suggest|explain> [options]\n" +
-        "       (passes all arguments through to `gh copilot`)\n"
+      `Usage: copilot <command> [options]\n` +
+        `       (passes all arguments through to \`${COPILOT_BIN}\`)\n`
     );
     process.exit(1);
   }
 
-  // ── Spawn gh copilot inside a PTY ──────────────────────────────────────────
+  // ── Spawn copilot inside a PTY ─────────────────────────────────────────────
 
   const cols = process.stdout.columns || 120;
   const rows = process.stdout.rows || 24;
 
-  const ptyProcess = pty.spawn("gh", ["copilot", ...args], {
+  const ptyProcess = pty.spawn(COPILOT_BIN, [...args], {
     name: process.env.TERM || "xterm-256color",
     cols,
     rows,
