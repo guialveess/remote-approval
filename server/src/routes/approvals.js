@@ -19,6 +19,28 @@ function buildApprovalsRouter(store, wsManager) {
   const router = Router();
   const adapterAuth = createAuthMiddleware('ADAPTER_SECRET');
 
+  // Skip mode — when enabled, all approvals are auto-approved instantly
+  let skipMode = false;
+
+  // -------------------------------------------------------------------------
+  // GET /skip — return current skip mode state
+  // POST /skip — set skip mode { enabled: boolean }
+  // -------------------------------------------------------------------------
+  router.get('/skip', (_req, res) => {
+    return res.json({ skipMode });
+  });
+
+  router.post('/skip', (req, res) => {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: '"enabled" must be a boolean' });
+    }
+    skipMode = enabled;
+    wsManager.broadcast('skip:changed', { skipMode });
+    console.log(`[approvals] Skip mode ${skipMode ? 'ENABLED' : 'disabled'}`);
+    return res.json({ skipMode });
+  });
+
   // -------------------------------------------------------------------------
   // POST /approvals — create a new approval request (adapter clients)
   // -------------------------------------------------------------------------
@@ -50,6 +72,17 @@ function buildApprovalsRouter(store, wsManager) {
     const approval = store.create({ tool, action, details, diff, source });
 
     console.log(`[approvals] Created ${approval.id} from ${source} — ${action}`);
+
+    // Skip mode: auto-approve immediately without notifying
+    if (skipMode) {
+      const resolved = store.resolve(approval.id, 'approved');
+      console.log(`[approvals] Auto-approved ${approval.id} (skip mode)`);
+      return res.status(201).json({
+        id: approval.id,
+        status: 'approved',
+        createdAt: approval.createdAt,
+      });
+    }
 
     // Send Hark notification asynchronously; don't fail the request if it errors
     sendHarkNotification(approval).catch((err) => {

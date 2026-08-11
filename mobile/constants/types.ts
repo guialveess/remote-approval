@@ -14,4 +14,5 @@ export interface Approval {
 
 export type WSEvent =
   | { type: 'approval:new'; data: Approval }
-  | { type: 'approval:resolved'; data: Approval };
+  | { type: 'approval:resolved'; data: Approval }
+  | { type: 'skip:changed'; data: { skipMode: boolean } };
