@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Expo
+mobile/.expo/
+mobile/dist/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*

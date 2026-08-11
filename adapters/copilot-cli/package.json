@@ -1,0 +1,16 @@
+{
+  "name": "remote-approval-copilot-cli",
+  "version": "1.0.0",
+  "description": "Remote approval wrapper for GitHub Copilot CLI",
+  "main": "wrapper.js",
+  "scripts": {
+    "start": "node wrapper.js"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "license": "MIT"
+}

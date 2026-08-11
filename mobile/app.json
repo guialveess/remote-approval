@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Remote Approval",
+    "slug": "remote-approval",
+    "version": "1.0.0",
+    "scheme": "remoteapproval",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0a",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.remoteapproval.app"
+    },
+    "android": {
+      "package": "com.remoteapproval.app"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
