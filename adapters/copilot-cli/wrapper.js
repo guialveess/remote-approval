@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 /**
- * Copilot CLI wrapper — remote approval gate for the standalone `copilot` CLI.
+ * Copilot CLI wrapper — opt-in remote approval gate.
  *
- * Spawns the copilot binary inside a PTY so it behaves as if it's running in a
- * real terminal, intercepts confirmation prompts, and gates execution behind a
- * remote approval call before passing a keystroke back to the PTY.
+ * Without the flag → completely transparent passthrough to the real binary.
+ * With the flag    → spawns the binary in a PTY, intercepts confirmation prompts,
+ *                    and blocks execution until approved/denied from the mobile app.
+ *
+ * Usage:
+ *   copilot [args...]                     # normal, no gate
+ *   copilot remote-approval [args...]     # gate active for this session
  *
  * Config (env vars):
  *   REMOTE_APPROVAL_URL     Base URL of the relay server
  *   REMOTE_APPROVAL_SECRET  Bearer token
+ *   REMOTE_APPROVAL_SESSION Session name shown in the app (default: hostname)
  *   COPILOT_BIN             Path to the real copilot binary (default: "copilot")
- *                           Set this to avoid alias recursion when the `copilot`
- *                           shell alias points to this wrapper.
  */
 
 "use strict";
@@ -21,6 +24,7 @@ const https = require("https");
 const http = require("http");
 const url = require("url");
 const os = require("os");
+const { spawnSync } = require("child_process");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -168,7 +172,26 @@ function sendHeartbeat() {
 async function main() {
   const args = process.argv.slice(2);
 
-  // Send initial heartbeat + keep session alive while the wrapper runs
+  // ── Gate flag check ────────────────────────────────────────────────────────
+  // If 'remote-approval' is not present, pass through to the real binary with
+  // zero overhead — the wrapper is completely invisible to the user.
+
+  const gateIndex = args.indexOf("remote-approval");
+
+  if (gateIndex === -1) {
+    const result = spawnSync(COPILOT_BIN, args, { stdio: "inherit" });
+    process.exit(result.status ?? (result.signal ? 1 : 0));
+    return;
+  }
+
+  // Strip 'remote-approval' from args — it can appear in any position.
+  const gatedArgs = [...args.slice(0, gateIndex), ...args.slice(gateIndex + 1)];
+
+  process.stderr.write(
+    `\x1B[33m[remote-approval] Gate active · session: ${SESSION}\x1B[0m\n`
+  );
+
+  // Register session and keep it alive via periodic heartbeat.
   sendHeartbeat();
   const hbTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
   if (hbTimer.unref) hbTimer.unref();
@@ -178,7 +201,7 @@ async function main() {
   const cols = process.stdout.columns || 120;
   const rows = process.stdout.rows || 24;
 
-  const ptyProcess = pty.spawn(COPILOT_BIN, [...args], {
+  const ptyProcess = pty.spawn(COPILOT_BIN, gatedArgs, {
     name: process.env.TERM || "xterm-256color",
     cols,
     rows,
