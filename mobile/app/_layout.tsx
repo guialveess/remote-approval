@@ -1,15 +1,15 @@
 import type { JSX } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { GluestackUIProvider } from '@gluestack-ui/themed';
-import { config } from '@gluestack-ui/config';
+import { HeroUINativeProvider } from 'heroui-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { WebSocketProvider } from '@/context/WebSocketContext';
+import '../global.css';
 
 export default function RootLayout(): JSX.Element {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider config={config} colorMode="dark">
+      <HeroUINativeProvider>
         <WebSocketProvider>
           <StatusBar style="light" />
           <Stack
@@ -28,7 +28,7 @@ export default function RootLayout(): JSX.Element {
             />
           </Stack>
         </WebSocketProvider>
-      </GluestackUIProvider>
+      </HeroUINativeProvider>
     </GestureHandlerRootView>
   );
 }

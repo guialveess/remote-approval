@@ -5,7 +5,6 @@ import {
   ActivityIndicator, Alert, Pressable, Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Badge, BadgeText, Spinner } from '@gluestack-ui/themed';
 import { COLORS, SERVER_URL, SOURCE_COLORS } from '@/constants/config';
 import { DiffViewer } from '@/components/DiffViewer';
 import type { Approval } from '@/constants/types';
@@ -44,7 +43,7 @@ function ActionButton({ label, color, onPress, isLoading, isDisabled }: {
       disabled={isDisabled}
     >
       {isLoading
-        ? <Spinner size="small" color={COLORS.foreground} />
+        ? <ActivityIndicator size="small" color={COLORS.foreground} />
         : <Text style={styles.actionButtonLabel}>{label}</Text>}
     </AnimatedPressable>
   );
@@ -120,7 +119,7 @@ export default function ApprovalDetailScreen(): JSX.Element {
 
   const isPending = approval.status === 'pending';
   const isActing = approvingState !== 'idle';
-  const badgeAction = approval.status === 'approved' ? 'success' : approval.status === 'denied' ? 'error' : 'muted';
+  const statusColor = approval.status === 'approved' ? COLORS.approve : approval.status === 'denied' ? COLORS.deny : COLORS.mutedFg;
 
   return (
     <View style={styles.container}>
@@ -138,9 +137,11 @@ export default function ApprovalDetailScreen(): JSX.Element {
 
         {!isPending && (
           <View style={styles.statusRow}>
-            <Badge action={badgeAction} variant="solid" size="md">
-              <BadgeText>{approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}</BadgeText>
-            </Badge>
+            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}22`, borderColor: `${statusColor}55` }]}>
+              <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+                {approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
+              </Text>
+            </View>
             {approval.resolvedAt && <Text style={styles.resolvedAt}>{timeFormatted(approval.resolvedAt)}</Text>}
           </View>
         )}
@@ -202,4 +203,6 @@ const styles = StyleSheet.create({
   overlayCircle: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)' },
   overlaySymbol: { fontSize: 52, fontWeight: '700', lineHeight: 60 },
   errorText: { color: COLORS.deny, fontSize: 15 },
+  statusBadge: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3 },
+  statusBadgeText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3 },
 });
