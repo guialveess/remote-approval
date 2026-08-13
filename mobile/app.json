@@ -9,7 +9,10 @@
     "backgroundColor": "#0a0a0a",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.remoteapproval.app"
+      "bundleIdentifier": "com.remoteapproval.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.remoteapproval.app"
@@ -20,6 +23,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "32a5f6cd-2732-41a4-b261-3fccf02ee67a"
+      }
     }
   }
 }
