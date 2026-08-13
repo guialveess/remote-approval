@@ -285,6 +285,12 @@ function buildPayload(toolName, toolInput) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  // Opt-in gate: only active when REMOTE_APPROVAL=1 is set in the environment.
+  // Without it the hook exits immediately and Claude runs freely.
+  if (!process.env.REMOTE_APPROVAL) {
+    process.exit(0);
+  }
+
   // Validate config before doing any work.
   if (!SERVER_URL) {
     process.stderr.write(
