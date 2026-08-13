@@ -91,28 +91,32 @@ export default function HistoryScreen() {
   );
 }
 
+const TAB_BAR_HEIGHT = 110;
+
 const styles = StyleSheet.create({
   flatList: {
-    backgroundColor: COLORS.background,
+    backgroundColor: '#080808',
   },
   list: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: TAB_BAR_HEIGHT,
   },
   listEmpty: {
     flex: 1,
     justifyContent: 'center',
+    paddingBottom: TAB_BAR_HEIGHT,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: '#080808',
+    paddingBottom: TAB_BAR_HEIGHT,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    gap: 6,
   },
   emptyIconWrap: {
     marginBottom: 20,

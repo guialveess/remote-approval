@@ -179,7 +179,7 @@ export default function SessionsScreen(): JSX.Element {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: 120 },
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: COLORS.mutedFg,
     letterSpacing: 1.2, marginBottom: 8, marginTop: 16, marginLeft: 4,
