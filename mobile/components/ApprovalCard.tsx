@@ -1,62 +1,49 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  Pressable,
-  Animated,
-} from 'react-native';
+import { StyleSheet, View, Text, Pressable, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, SOURCE_COLORS } from '@/constants/config';
 import type { Approval, ApprovalStatus } from '@/constants/types';
 
 function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = Math.floor((now - then) / 1000);
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function StatusDot({ status }: { status: ApprovalStatus }) {
+function StatusPill({ status }: { status: ApprovalStatus }) {
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (status === 'pending') {
-      const animation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(opacity, { toValue: 0.2, duration: 800, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-        ])
-      );
-      animation.start();
-      return () => animation.stop();
-    }
+    if (status !== 'pending') return;
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.3, duration: 900, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
   }, [status, opacity]);
 
   const color =
-    status === 'approved'
-      ? COLORS.approve
-      : status === 'denied'
-      ? COLORS.deny
-      : status === 'expired'
-      ? COLORS.mutedFg
-      : '#facc15';
+    status === 'approved' ? COLORS.approve :
+    status === 'denied'   ? COLORS.deny :
+    status === 'expired'  ? COLORS.mutedFg : '#f59e0b';
 
-  if (status === 'approved') {
-    return <Text style={[styles.statusSymbol, { color }]}>✓</Text>;
-  }
-  if (status === 'denied') {
-    return <Text style={[styles.statusSymbol, { color }]}>✕</Text>;
-  }
-  if (status === 'expired') {
-    return <Text style={[styles.statusSymbol, { color }]}>—</Text>;
-  }
+  const label =
+    status === 'approved' ? '✓ Approved' :
+    status === 'denied'   ? '✕ Denied' :
+    status === 'expired'  ? '— Expired' : '● Pending';
 
   return (
-    <Animated.View style={[styles.dot, { backgroundColor: color, opacity }]} />
+    <Animated.View style={[
+      styles.statusPill,
+      { backgroundColor: `${color}18`, borderColor: `${color}35`, opacity: status === 'pending' ? opacity : 1 },
+    ]}>
+      <Text style={[styles.statusText, { color }]}>{label}</Text>
+    </Animated.View>
   );
 }
 
@@ -69,47 +56,54 @@ export function ApprovalCard({ approval, animate = true }: ApprovalCardProps) {
   const router = useRouter();
   const scale = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(animate ? 0 : 1)).current;
-
   const sourceColor = SOURCE_COLORS[approval.source] ?? SOURCE_COLORS['default'];
 
   useEffect(() => {
-    if (animate) {
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-    }
+    if (!animate) return;
+    Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
   }, [animate, fadeAnim]);
 
-  function handlePress() {
-    Animated.sequence([
-      Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
-    ]).start();
-    router.push(`/approval/${approval.id}`);
+  function handlePressIn() {
+    Animated.spring(scale, { toValue: 0.975, damping: 20, stiffness: 400, useNativeDriver: true }).start();
+  }
+  function handlePressOut() {
+    Animated.spring(scale, { toValue: 1, damping: 15, stiffness: 300, useNativeDriver: true }).start();
   }
 
   return (
     <Animated.View style={{ transform: [{ scale }], opacity: fadeAnim }}>
-      <Pressable onPress={handlePress} style={styles.card}>
+      <Pressable
+        onPress={() => router.push(`/approval/${approval.id}`)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={styles.card}
+      >
+        {/* Top row */}
         <View style={styles.topRow}>
-          <View style={[styles.sourceBadge, { backgroundColor: `${sourceColor}22`, borderColor: `${sourceColor}44` }]}>
-            <Text style={[styles.sourceBadgeText, { color: sourceColor }]}>
-              {approval.source}
-            </Text>
-          </View>
-          <View style={styles.rightMeta}>
-            <Text style={styles.timeAgo}>{timeAgo(approval.createdAt)}</Text>
-            <StatusDot status={approval.status} />
-          </View>
+          <View style={[styles.sourceDot, { backgroundColor: sourceColor }]} />
+          <Text style={[styles.sourceLabel, { color: sourceColor }]}>{approval.source}</Text>
+          {approval.session && (
+            <Text style={styles.sessionLabel}>· {approval.session}</Text>
+          )}
+          <View style={{ flex: 1 }} />
+          <Text style={styles.timeAgo}>{timeAgo(approval.createdAt)}</Text>
         </View>
 
-        <Text style={styles.action} numberOfLines={1}>{approval.action}</Text>
+        {/* Action */}
+        <Text style={styles.action} numberOfLines={2}>{approval.action}</Text>
 
-        {approval.session && (
-          <Text style={styles.session}>⌗ {approval.session}</Text>
-        )}
+        {/* Details */}
+        <Text style={styles.details} numberOfLines={2}>{approval.details}</Text>
 
-        <Text style={styles.details} numberOfLines={2}>
-          {approval.details}
-        </Text>
+        {/* Bottom row */}
+        <View style={styles.bottomRow}>
+          <StatusPill status={approval.status} />
+          {approval.diff && (
+            <View style={styles.diffBadge}>
+              <Text style={styles.diffBadgeText}>DIFF</Text>
+            </View>
+          )}
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -117,69 +111,82 @@ export function ApprovalCard({ approval, animate = true }: ApprovalCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: 14,
+    backgroundColor: '#111111',
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.07)',
+    padding: 16,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    gap: 8,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    gap: 6,
   },
-  sourceBadge: {
-    borderRadius: 100,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  sourceBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  rightMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  timeAgo: {
-    fontSize: 11,
-    color: COLORS.mutedFg,
-  },
-  dot: {
+  sourceDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
   },
-  statusSymbol: {
-    fontSize: 13,
-    fontWeight: '700',
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  sessionLabel: {
+    fontSize: 12,
+    color: COLORS.mutedFg,
+  },
+  timeAgo: {
+    fontSize: 12,
+    color: COLORS.mutedFg,
   },
   action: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.foreground,
-    marginBottom: 4,
-  },
-  session: {
-    fontSize: 11,
-    color: COLORS.mutedFg,
-    marginBottom: 5,
-    letterSpacing: 0.2,
+    color: '#ffffff',
+    lineHeight: 20,
   },
   details: {
     fontSize: 12,
     color: COLORS.mutedFg,
     fontFamily: 'monospace',
     lineHeight: 17,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  statusPill: {
+    borderRadius: 100,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  diffBadge: {
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  diffBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.mutedFg,
+    letterSpacing: 0.8,
   },
 });
